@@ -1,0 +1,148 @@
+// © 2026 Sagar
+//
+// This indicator is provided free of charge for public use.
+//
+// You are allowed to use, modify, and share this indicator,
+// provided that proper credit is given to the original author.
+//
+// Claiming authorship, removing this notice, or representing
+// this indicator as your own work is strictly prohibited.
+
+//@version=5
+indicator("Daily High Low – Candle Origin (Institutional)", overlay=true)
+
+// ─────────────────────────────
+// SAFETY (MANDATORY)
+// ─────────────────────────────
+if timeframe.isdaily
+    runtime.error("This indicator works only on intraday timeframes.")
+
+// ─────────────────────────────
+// SETTINGS
+// ─────────────────────────────
+showCurrentHigh = input.bool(true, "Show Current Daily High")
+showCurrentLow  = input.bool(true, "Show Current Daily Low")
+showPrevHigh    = input.bool(true, "Show Previous Daily High")
+showPrevLow     = input.bool(true, "Show Previous Daily Low")
+
+rightExtendBars = input.int(50, "Right Extension (bars)", minval=10)
+
+// ─────────────────────────────
+// DAILY CHANGE (EXCHANGE BASED)
+// ─────────────────────────────
+isNewDay = timeframe.change("D")
+rightX   = bar_index + rightExtendBars
+
+// ─────────────────────────────
+// CURRENT DAILY HIGH / LOW
+// ─────────────────────────────
+var float currHigh = na
+var float currLow  = na
+var int   currHighBar = na
+var int   currLowBar  = na
+
+if isNewDay
+    currHigh := high
+    currLow  := low
+    currHighBar := bar_index
+    currLowBar  := bar_index
+else
+    if high > currHigh
+        currHigh := high
+        currHighBar := bar_index
+    if low < currLow
+        currLow := low
+        currLowBar := bar_index
+
+// ─────────────────────────────
+// PREVIOUS DAILY VALUES (LOCKED)
+// ─────────────────────────────
+var float prevHigh = na
+var float prevLow  = na
+var int   prevHighBar = na
+var int   prevLowBar  = na
+
+if isNewDay and not na(currHigh[1])
+    prevHigh := currHigh[1]
+    prevLow  := currLow[1]
+    prevHighBar := currHighBar[1]
+    prevLowBar  := currLowBar[1]
+
+// ─────────────────────────────
+// CURRENT DAY LINES (UPDATING)
+// ─────────────────────────────
+var line currHighLine = na
+var line currLowLine  = na
+
+if showCurrentHigh and not na(currHigh)
+    if na(currHighLine)
+        currHighLine := line.new(currHighBar, currHigh, rightX, currHigh, color=color.gray, style=line.style_dashed)
+    else
+        line.set_xy1(currHighLine, currHighBar, currHigh)
+        line.set_xy2(currHighLine, rightX, currHigh)
+
+if showCurrentLow and not na(currLow)
+    if na(currLowLine)
+        currLowLine := line.new(currLowBar, currLow, rightX, currLow, color=color.gray, style=line.style_dashed)
+    else
+        line.set_xy1(currLowLine, currLowBar, currLow)
+        line.set_xy2(currLowLine, rightX, currLow)
+
+// ─────────────────────────────
+// PREVIOUS DAY LINES (FIXED PRICE)
+// ─────────────────────────────
+var line prevHighLine = na
+var line prevLowLine  = na
+
+if isNewDay and not na(prevHigh)
+    line.delete(prevHighLine)
+    line.delete(prevLowLine)
+
+    if showPrevHigh
+        prevHighLine := line.new(prevHighBar, prevHigh, rightX, prevHigh, color=color.new(color.gray, 60), style=line.style_dashed)
+
+    if showPrevLow
+        prevLowLine := line.new(prevLowBar, prevLow, rightX, prevLow, color=color.new(color.gray, 60), style=line.style_dashed)
+
+// Keep right edge aligned
+if not isNewDay
+    if showPrevHigh and not na(prevHighLine)
+        line.set_xy2(prevHighLine, rightX, prevHigh)
+    if showPrevLow and not na(prevLowLine)
+        line.set_xy2(prevLowLine, rightX, prevLow)
+
+// ─────────────────────────────
+// LABELS (TEXT ONLY MOVES)
+// ─────────────────────────────
+var label currHighLabel = na
+var label currLowLabel  = na
+var label prevHighLabel = na
+var label prevLowLabel  = na
+
+// Current labels
+if showCurrentHigh and not na(currHigh)
+    if na(currHighLabel)
+        currHighLabel := label.new(bar_index + 5, currHigh, "Current Daily High", style=label.style_none, textcolor=color.gray, size=size.small)
+    else
+        label.set_xy(currHighLabel, bar_index + 5, currHigh)
+
+if showCurrentLow and not na(currLow)
+    if na(currLowLabel)
+        currLowLabel := label.new(bar_index + 5, currLow, "Current Daily Low", style=label.style_none, textcolor=color.gray, size=size.small)
+    else
+        label.set_xy(currLowLabel, bar_index + 5, currLow)
+
+// Previous labels
+if showPrevHigh and not na(prevHigh)
+    if isNewDay
+        label.delete(prevHighLabel)
+        prevHighLabel := label.new(bar_index + 5, prevHigh, "Previous Daily High", style=label.style_none, textcolor=color.new(color.gray, 60), size=size.small)
+    else
+        label.set_xy(prevHighLabel, bar_index + 5, prevHigh)
+
+if showPrevLow and not na(prevLow)
+    if isNewDay
+        label.delete(prevLowLabel)
+        prevLowLabel := label.new(bar_index + 5, prevLow, "Previous Daily Low", style=label.style_none, textcolor=color.new(color.gray, 60), size=size.small)
+    else
+        label.set_xy(prevLowLabel, bar_index + 5, prevLow)
