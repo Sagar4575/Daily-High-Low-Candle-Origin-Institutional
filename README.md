@@ -8,12 +8,23 @@ This indicator is designed for intraday traders who use daily highs and lows as 
 
 ## What This Indicator Does
 
-- Plots current day high and low levels
-- Plots previous day high and low levels
-- Anchors each level to the candle that created it
-- Updates current day levels dynamically
-- Locks previous day levels (non-repainting)
+What This Indicator Does
 
+
+This indicator plots the current day and previous day high and low levels, anchored to the exact candle that created each level.
+Unlike many daily high-low indicators that begin lines from a fixed session start, this indicator ensures each level originates from true price action, resulting in more accurate and reliable reference levels.
+Current day levels update dynamically as price evolves, while previous day levels are locked and do not repaint.
+
+How to Use This Indicator
+Apply the indicator on intraday timeframes such as 5-minute, 15-minute, or 1-hour charts.
+Observe the current day high and low to monitor the developing daily range.
+Use the previous day high and low as key reference levels for price reactions, rejections, or breakouts.
+Enable or disable current and previous levels from the indicator settings based on your trading approach.
+
+Best Recommendations for Use
+
+Suitable for Forex, Indices, Crypto, and Stocks.
+Most effective when combined with: Market structure analysis, Liquidity sweep concepts, Break and retest setups
 ---
 
 ## How to Use
