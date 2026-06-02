@@ -18,39 +18,71 @@ if timeframe.isdaily
     runtime.error("This indicator works only on intraday timeframes.")
 
 // ─────────────────────────────
-// SETTINGS
+// GENERAL SETTINGS
+// ─────────────────���───────────
+showCurrentHigh = input.bool(true,  "Show Current Daily High")
+showCurrentLow  = input.bool(true,  "Show Current Daily Low")
+showPrevHigh    = input.bool(true,  "Show Previous Daily High")
+showPrevLow     = input.bool(true,  "Show Previous Daily Low")
+rightExtendBars = input.int(50,     "Right Extension (bars)", minval=10)
+
 // ─────────────────────────────
-showCurrentHigh = input.bool(true, "Show Current Daily High")
-showCurrentLow  = input.bool(true, "Show Current Daily Low")
-showPrevHigh    = input.bool(true, "Show Previous Daily High")
-showPrevLow     = input.bool(true, "Show Previous Daily Low")
-
-rightExtendBars = input.int(50, "Right Extension (bars)", minval=10)
+// CURRENT HIGH – GROUP
+// ─────────────────────────────
+currHighColor      = input.color(color.gray,   "Line Color",         group="Current High")
+currHighStyle      = input.string("dashed",    "Line Style",         group="Current High", options=["solid","dashed","dotted"])
+currHighWidth      = input.int(1,              "Line Width",         group="Current High", minval=1, maxval=4)
+showCurrHighLabel  = input.bool(true,          "Show Label",         group="Current High")
+currHighLabelText  = input.string("Current Daily High", "Label Text", group="Current High")
+currHighLabelColor = input.color(color.gray,   "Label Color",        group="Current High")
+currHighLabelSize  = input.string("small",     "Label Size",         group="Current High", options=["tiny","small","normal","large"])
 
 // ─────────────────────────────
-// LINE CUSTOMIZATION
+// CURRENT LOW – GROUP
 // ─────────────────────────────
-currHighColor  = input.color(color.gray,                  "Current High – Color",    group="Line Style")
-currHighStyle  = input.string("dashed", "Current High – Style",  options=["solid","dashed","dotted"], group="Line Style")
-currHighWidth  = input.int(1, "Current High – Width", minval=1, maxval=4, group="Line Style")
+currLowColor       = input.color(color.gray,   "Line Color",         group="Current Low")
+currLowStyle       = input.string("dashed",    "Line Style",         group="Current Low",  options=["solid","dashed","dotted"])
+currLowWidth       = input.int(1,              "Line Width",         group="Current Low",  minval=1, maxval=4)
+showCurrLowLabel   = input.bool(true,          "Show Label",         group="Current Low")
+currLowLabelText   = input.string("Current Daily Low", "Label Text", group="Current Low")
+currLowLabelColor  = input.color(color.gray,   "Label Color",        group="Current Low")
+currLowLabelSize   = input.string("small",     "Label Size",         group="Current Low",  options=["tiny","small","normal","large"])
 
-currLowColor   = input.color(color.gray,                  "Current Low  – Color",    group="Line Style")
-currLowStyle   = input.string("dashed", "Current Low  – Style",  options=["solid","dashed","dotted"], group="Line Style")
-currLowWidth   = input.int(1, "Current Low  – Width", minval=1, maxval=4, group="Line Style")
+// ─────────────────────────────
+// PREVIOUS HIGH – GROUP
+// ─────────────────────────────
+prevHighColor      = input.color(color.new(color.gray, 60), "Line Color",  group="Previous High")
+prevHighStyle      = input.string("dashed",    "Line Style",         group="Previous High", options=["solid","dashed","dotted"])
+prevHighWidth      = input.int(1,              "Line Width",         group="Previous High", minval=1, maxval=4)
+showPrevHighLabel  = input.bool(true,          "Show Label",         group="Previous High")
+prevHighLabelText  = input.string("Previous Daily High", "Label Text", group="Previous High")
+prevHighLabelColor = input.color(color.new(color.gray, 60), "Label Color", group="Previous High")
+prevHighLabelSize  = input.string("small",     "Label Size",         group="Previous High", options=["tiny","small","normal","large"])
 
-prevHighColor  = input.color(color.new(color.gray, 60),   "Prev High    – Color",    group="Line Style")
-prevHighStyle  = input.string("dashed", "Prev High    – Style",  options=["solid","dashed","dotted"], group="Line Style")
-prevHighWidth  = input.int(1, "Prev High    – Width", minval=1, maxval=4, group="Line Style")
+// ─────────────────────────────
+// PREVIOUS LOW – GROUP
+// ─────────────────────────────
+prevLowColor       = input.color(color.new(color.gray, 60), "Line Color",  group="Previous Low")
+prevLowStyle       = input.string("dashed",    "Line Style",         group="Previous Low",  options=["solid","dashed","dotted"])
+prevLowWidth       = input.int(1,              "Line Width",         group="Previous Low",  minval=1, maxval=4)
+showPrevLowLabel   = input.bool(true,          "Show Label",         group="Previous Low")
+prevLowLabelText   = input.string("Previous Daily Low", "Label Text", group="Previous Low")
+prevLowLabelColor  = input.color(color.new(color.gray, 60), "Label Color", group="Previous Low")
+prevLowLabelSize   = input.string("small",     "Label Size",         group="Previous Low",  options=["tiny","small","normal","large"])
 
-prevLowColor   = input.color(color.new(color.gray, 60),   "Prev Low     – Color",    group="Line Style")
-prevLowStyle   = input.string("dashed", "Prev Low     – Style",  options=["solid","dashed","dotted"], group="Line Style")
-prevLowWidth   = input.int(1, "Prev Low     – Width", minval=1, maxval=4, group="Line Style")
-
-// Helper: convert string → line.style_*
+// ─────────────────────────────
+// HELPERS
+// ─────────────────────────────
 f_style(s) =>
     s == "solid"  ? line.style_solid  :
      s == "dotted" ? line.style_dotted :
      line.style_dashed
+
+f_size(s) =>
+    s == "tiny"   ? size.tiny   :
+     s == "normal" ? size.normal :
+     s == "large"  ? size.large  :
+     size.small
 
 // ─────────────────────────────
 // DAILY CHANGE (EXCHANGE BASED)
@@ -61,35 +93,35 @@ rightX   = bar_index + rightExtendBars
 // ─────────────────────────────
 // CURRENT DAILY HIGH / LOW
 // ─────────────────────────────
-var float currHigh = na
-var float currLow  = na
+var float currHigh    = na
+var float currLow     = na
 var int   currHighBar = na
 var int   currLowBar  = na
 
 if isNewDay
-    currHigh := high
-    currLow  := low
+    currHigh    := high
+    currLow     := low
     currHighBar := bar_index
     currLowBar  := bar_index
 else
     if high > currHigh
-        currHigh := high
+        currHigh    := high
         currHighBar := bar_index
     if low < currLow
-        currLow := low
+        currLow    := low
         currLowBar := bar_index
 
 // ─────────────────────────────
 // PREVIOUS DAILY VALUES (LOCKED)
 // ─────────────────────────────
-var float prevHigh = na
-var float prevLow  = na
+var float prevHigh    = na
+var float prevLow     = na
 var int   prevHighBar = na
 var int   prevLowBar  = na
 
 if isNewDay and not na(currHigh[1])
-    prevHigh := currHigh[1]
-    prevLow  := currLow[1]
+    prevHigh    := currHigh[1]
+    prevLow     := currLow[1]
     prevHighBar := currHighBar[1]
     prevLowBar  := currLowBar[1]
 
@@ -135,7 +167,6 @@ if isNewDay and not na(prevHigh)
     if showPrevLow
         prevLowLine := line.new(prevLowBar, prevLow, rightX, prevLow, color=prevLowColor, style=f_style(prevLowStyle), width=prevLowWidth)
 
-// Keep right edge aligned
 if not isNewDay
     if showPrevHigh and not na(prevHighLine)
         line.set_xy2(prevHighLine, rightX, prevHigh)
@@ -149,37 +180,67 @@ if not isNewDay
         line.set_width(prevLowLine, prevLowWidth)
 
 // ─────────────────────────────
-// LABELS (TEXT ONLY MOVES)
+// LABELS (FULLY CUSTOMIZABLE)
 // ─────────────────────────────
 var label currHighLabel = na
 var label currLowLabel  = na
 var label prevHighLabel = na
 var label prevLowLabel  = na
 
-// Current labels
+// Current High Label
 if showCurrentHigh and not na(currHigh)
-    if na(currHighLabel)
-        currHighLabel := label.new(bar_index + 5, currHigh, "Current Daily High", style=label.style_none, textcolor=color.gray, size=size.small)
+    if showCurrHighLabel
+        if na(currHighLabel)
+            currHighLabel := label.new(rightX, currHigh, currHighLabelText, style=label.style_none, textcolor=currHighLabelColor, size=f_size(currHighLabelSize))
+        else
+            label.set_xy(currHighLabel, rightX, currHigh)
+            label.set_text(currHighLabel, currHighLabelText)
+            label.set_textcolor(currHighLabel, currHighLabelColor)
+            label.set_size(currHighLabel, f_size(currHighLabelSize))
     else
-        label.set_xy(currHighLabel, bar_index + 5, currHigh)
+        label.delete(currHighLabel)
+        currHighLabel := na
 
+// Current Low Label
 if showCurrentLow and not na(currLow)
-    if na(currLowLabel)
-        currLowLabel := label.new(bar_index + 5, currLow, "Current Daily Low", style=label.style_none, textcolor=color.gray, size=size.small)
+    if showCurrLowLabel
+        if na(currLowLabel)
+            currLowLabel := label.new(rightX, currLow, currLowLabelText, style=label.style_none, textcolor=currLowLabelColor, size=f_size(currLowLabelSize))
+        else
+            label.set_xy(currLowLabel, rightX, currLow)
+            label.set_text(currLowLabel, currLowLabelText)
+            label.set_textcolor(currLowLabel, currLowLabelColor)
+            label.set_size(currLowLabel, f_size(currLowLabelSize))
     else
-        label.set_xy(currLowLabel, bar_index + 5, currLow)
+        label.delete(currLowLabel)
+        currLowLabel := na
 
-// Previous labels
+// Previous High Label
 if showPrevHigh and not na(prevHigh)
-    if isNewDay
+    if showPrevHighLabel
+        if isNewDay
+            label.delete(prevHighLabel)
+            prevHighLabel := label.new(rightX, prevHigh, prevHighLabelText, style=label.style_none, textcolor=prevHighLabelColor, size=f_size(prevHighLabelSize))
+        else
+            label.set_xy(prevHighLabel, rightX, prevHigh)
+            label.set_text(prevHighLabel, prevHighLabelText)
+            label.set_textcolor(prevHighLabel, prevHighLabelColor)
+            label.set_size(prevHighLabel, f_size(prevHighLabelSize))
+    else
         label.delete(prevHighLabel)
-        prevHighLabel := label.new(bar_index + 5, prevHigh, "Previous Daily High", style=label.style_none, textcolor=color.new(color.gray, 60), size=size.small)
-    else
-        label.set_xy(prevHighLabel, bar_index + 5, prevHigh)
+        prevHighLabel := na
 
+// Previous Low Label
 if showPrevLow and not na(prevLow)
-    if isNewDay
-        label.delete(prevLowLabel)
-        prevLowLabel := label.new(bar_index + 5, prevLow, "Previous Daily Low", style=label.style_none, textcolor=color.new(color.gray, 60), size=size.small)
+    if showPrevLowLabel
+        if isNewDay
+            label.delete(prevLowLabel)
+            prevLowLabel := label.new(rightX, prevLow, prevLowLabelText, style=label.style_none, textcolor=prevLowLabelColor, size=f_size(prevLowLabelSize))
+        else
+            label.set_xy(prevLowLabel, rightX, prevLow)
+            label.set_text(prevLowLabel, prevLowLabelText)
+            label.set_textcolor(prevLowLabel, prevLowLabelColor)
+            label.set_size(prevLowLabel, f_size(prevLowLabelSize))
     else
-        label.set_xy(prevLowLabel, bar_index + 5, prevLow)
+        label.delete(prevLowLabel)
+        prevLowLabel := na
