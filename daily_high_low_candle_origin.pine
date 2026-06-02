@@ -28,6 +28,31 @@ showPrevLow     = input.bool(true, "Show Previous Daily Low")
 rightExtendBars = input.int(50, "Right Extension (bars)", minval=10)
 
 // ─────────────────────────────
+// LINE CUSTOMIZATION
+// ─────────────────────────────
+currHighColor  = input.color(color.gray,                  "Current High – Color",    group="Line Style")
+currHighStyle  = input.string("dashed", "Current High – Style",  options=["solid","dashed","dotted"], group="Line Style")
+currHighWidth  = input.int(1, "Current High – Width", minval=1, maxval=4, group="Line Style")
+
+currLowColor   = input.color(color.gray,                  "Current Low  – Color",    group="Line Style")
+currLowStyle   = input.string("dashed", "Current Low  – Style",  options=["solid","dashed","dotted"], group="Line Style")
+currLowWidth   = input.int(1, "Current Low  – Width", minval=1, maxval=4, group="Line Style")
+
+prevHighColor  = input.color(color.new(color.gray, 60),   "Prev High    – Color",    group="Line Style")
+prevHighStyle  = input.string("dashed", "Prev High    – Style",  options=["solid","dashed","dotted"], group="Line Style")
+prevHighWidth  = input.int(1, "Prev High    – Width", minval=1, maxval=4, group="Line Style")
+
+prevLowColor   = input.color(color.new(color.gray, 60),   "Prev Low     – Color",    group="Line Style")
+prevLowStyle   = input.string("dashed", "Prev Low     – Style",  options=["solid","dashed","dotted"], group="Line Style")
+prevLowWidth   = input.int(1, "Prev Low     – Width", minval=1, maxval=4, group="Line Style")
+
+// Helper: convert string → line.style_*
+f_style(s) =>
+    s == "solid"  ? line.style_solid  :
+     s == "dotted" ? line.style_dotted :
+     line.style_dashed
+
+// ─────────────────────────────
 // DAILY CHANGE (EXCHANGE BASED)
 // ─────────────────────────────
 isNewDay = timeframe.change("D")
@@ -76,17 +101,23 @@ var line currLowLine  = na
 
 if showCurrentHigh and not na(currHigh)
     if na(currHighLine)
-        currHighLine := line.new(currHighBar, currHigh, rightX, currHigh, color=color.gray, style=line.style_dashed)
+        currHighLine := line.new(currHighBar, currHigh, rightX, currHigh, color=currHighColor, style=f_style(currHighStyle), width=currHighWidth)
     else
         line.set_xy1(currHighLine, currHighBar, currHigh)
         line.set_xy2(currHighLine, rightX, currHigh)
+        line.set_color(currHighLine, currHighColor)
+        line.set_style(currHighLine, f_style(currHighStyle))
+        line.set_width(currHighLine, currHighWidth)
 
 if showCurrentLow and not na(currLow)
     if na(currLowLine)
-        currLowLine := line.new(currLowBar, currLow, rightX, currLow, color=color.gray, style=line.style_dashed)
+        currLowLine := line.new(currLowBar, currLow, rightX, currLow, color=currLowColor, style=f_style(currLowStyle), width=currLowWidth)
     else
         line.set_xy1(currLowLine, currLowBar, currLow)
         line.set_xy2(currLowLine, rightX, currLow)
+        line.set_color(currLowLine, currLowColor)
+        line.set_style(currLowLine, f_style(currLowStyle))
+        line.set_width(currLowLine, currLowWidth)
 
 // ─────────────────────────────
 // PREVIOUS DAY LINES (FIXED PRICE)
@@ -99,17 +130,23 @@ if isNewDay and not na(prevHigh)
     line.delete(prevLowLine)
 
     if showPrevHigh
-        prevHighLine := line.new(prevHighBar, prevHigh, rightX, prevHigh, color=color.new(color.gray, 60), style=line.style_dashed)
+        prevHighLine := line.new(prevHighBar, prevHigh, rightX, prevHigh, color=prevHighColor, style=f_style(prevHighStyle), width=prevHighWidth)
 
     if showPrevLow
-        prevLowLine := line.new(prevLowBar, prevLow, rightX, prevLow, color=color.new(color.gray, 60), style=line.style_dashed)
+        prevLowLine := line.new(prevLowBar, prevLow, rightX, prevLow, color=prevLowColor, style=f_style(prevLowStyle), width=prevLowWidth)
 
 // Keep right edge aligned
 if not isNewDay
     if showPrevHigh and not na(prevHighLine)
         line.set_xy2(prevHighLine, rightX, prevHigh)
+        line.set_color(prevHighLine, prevHighColor)
+        line.set_style(prevHighLine, f_style(prevHighStyle))
+        line.set_width(prevHighLine, prevHighWidth)
     if showPrevLow and not na(prevLowLine)
         line.set_xy2(prevLowLine, rightX, prevLow)
+        line.set_color(prevLowLine, prevLowColor)
+        line.set_style(prevLowLine, f_style(prevLowStyle))
+        line.set_width(prevLowLine, prevLowWidth)
 
 // ─────────────────────────────
 // LABELS (TEXT ONLY MOVES)
