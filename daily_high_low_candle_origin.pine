@@ -9,21 +9,43 @@
 // this indicator as your own work is strictly prohibited.
 
 //@version=5
-indicator("Daily High Low – Candle Origin (Institutional)", overlay=true)
+indicator("High Low – Candle Origin (Institutional)", overlay=true)
+
+// ─────────────────────────────
+// PERIOD MODE
+// ─────────────────────────────
+// Choose which period the "Current" / "Previous" High-Low lines track.
+// The chart's own timeframe must be SMALLER than the chosen period
+// (e.g. Period Mode = "1 Hour" needs a chart timeframe below 1H).
+periodMode = input.string("Daily", "Period Mode", options=["1 Hour", "4 Hour", "Daily", "Weekly"], group="Period Settings")
+
+// Resolution string fed to timeframe.change() / timeframe.in_seconds()
+periodTF = switch periodMode
+    "1 Hour" => "60"
+    "4 Hour" => "240"
+    "Weekly" => "W"
+    => "D"
+
+// Short label used to auto-build default label text (e.g. "Current Daily High")
+modeLabel = switch periodMode
+    "1 Hour" => "Hourly"
+    "4 Hour" => "4H"
+    "Weekly" => "Weekly"
+    => "Daily"
 
 // ─────────────────────────────
 // SAFETY (MANDATORY)
 // ─────────────────────────────
-if timeframe.isdaily
-    runtime.error("This indicator works only on intraday timeframes.")
+if timeframe.in_seconds() >= timeframe.in_seconds(periodTF)
+    runtime.error("Chart timeframe must be smaller than the selected Period Mode timeframe.")
 
 // ─────────────────────────────
 // GENERAL SETTINGS
-// ─────────────────���───────────
-showCurrentHigh = input.bool(true,  "Show Current Daily High")
-showCurrentLow  = input.bool(true,  "Show Current Daily Low")
-showPrevHigh    = input.bool(true,  "Show Previous Daily High")
-showPrevLow     = input.bool(true,  "Show Previous Daily Low")
+// ─────────────────────────────
+showCurrentHigh = input.bool(true,  "Show Current High")
+showCurrentLow  = input.bool(true,  "Show Current Low")
+showPrevHigh    = input.bool(true,  "Show Previous High")
+showPrevLow     = input.bool(true,  "Show Previous Low")
 rightExtendBars = input.int(50,     "Right Extension (bars)", minval=10)
 
 // ─────────────────────────────
@@ -33,7 +55,7 @@ currHighColor      = input.color(color.gray,   "Line Color",         group="Curr
 currHighStyle      = input.string("dashed",    "Line Style",         group="Current High", options=["solid","dashed","dotted"])
 currHighWidth      = input.int(1,              "Line Width",         group="Current High", minval=1, maxval=4)
 showCurrHighLabel  = input.bool(true,          "Show Label",         group="Current High")
-currHighLabelText  = input.string("Current Daily High", "Label Text", group="Current High")
+currHighLabelText  = input.string("",          "Label Text (blank = auto)", group="Current High")
 currHighLabelColor = input.color(color.gray,   "Label Color",        group="Current High")
 currHighLabelSize  = input.string("small",     "Label Size",         group="Current High", options=["tiny","small","normal","large"])
 
@@ -44,7 +66,7 @@ currLowColor       = input.color(color.gray,   "Line Color",         group="Curr
 currLowStyle       = input.string("dashed",    "Line Style",         group="Current Low",  options=["solid","dashed","dotted"])
 currLowWidth       = input.int(1,              "Line Width",         group="Current Low",  minval=1, maxval=4)
 showCurrLowLabel   = input.bool(true,          "Show Label",         group="Current Low")
-currLowLabelText   = input.string("Current Daily Low", "Label Text", group="Current Low")
+currLowLabelText   = input.string("",          "Label Text (blank = auto)", group="Current Low")
 currLowLabelColor  = input.color(color.gray,   "Label Color",        group="Current Low")
 currLowLabelSize   = input.string("small",     "Label Size",         group="Current Low",  options=["tiny","small","normal","large"])
 
@@ -55,7 +77,7 @@ prevHighColor      = input.color(color.new(color.gray, 60), "Line Color",  group
 prevHighStyle      = input.string("dashed",    "Line Style",         group="Previous High", options=["solid","dashed","dotted"])
 prevHighWidth      = input.int(1,              "Line Width",         group="Previous High", minval=1, maxval=4)
 showPrevHighLabel  = input.bool(true,          "Show Label",         group="Previous High")
-prevHighLabelText  = input.string("Previous Daily High", "Label Text", group="Previous High")
+prevHighLabelText  = input.string("",          "Label Text (blank = auto)", group="Previous High")
 prevHighLabelColor = input.color(color.new(color.gray, 60), "Label Color", group="Previous High")
 prevHighLabelSize  = input.string("small",     "Label Size",         group="Previous High", options=["tiny","small","normal","large"])
 
@@ -66,7 +88,7 @@ prevLowColor       = input.color(color.new(color.gray, 60), "Line Color",  group
 prevLowStyle       = input.string("dashed",    "Line Style",         group="Previous Low",  options=["solid","dashed","dotted"])
 prevLowWidth       = input.int(1,              "Line Width",         group="Previous Low",  minval=1, maxval=4)
 showPrevLowLabel   = input.bool(true,          "Show Label",         group="Previous Low")
-prevLowLabelText   = input.string("Previous Daily Low", "Label Text", group="Previous Low")
+prevLowLabelText   = input.string("",          "Label Text (blank = auto)", group="Previous Low")
 prevLowLabelColor  = input.color(color.new(color.gray, 60), "Label Color", group="Previous Low")
 prevLowLabelSize   = input.string("small",     "Label Size",         group="Previous Low",  options=["tiny","small","normal","large"])
 
@@ -84,21 +106,30 @@ f_size(s) =>
      s == "large"  ? size.large  :
      size.small
 
-// ─────────────────────────────
-// DAILY CHANGE (EXCHANGE BASED)
-// ─────────────────────────────
-isNewDay = timeframe.change("D")
-rightX   = bar_index + rightExtendBars
+// Auto label text: use user text if provided, otherwise build from Period Mode
+f_label(userText, prefix, suffix) =>
+    userText == "" ? prefix + " " + modeLabel + " " + suffix : userText
+
+finalCurrHighText = f_label(currHighLabelText, "Current", "High")
+finalCurrLowText  = f_label(currLowLabelText,  "Current", "Low")
+finalPrevHighText = f_label(prevHighLabelText, "Previous", "High")
+finalPrevLowText  = f_label(prevLowLabelText,  "Previous", "Low")
 
 // ─────────────────────────────
-// CURRENT DAILY HIGH / LOW
+// PERIOD CHANGE (based on selected Period Mode)
+// ─────────────────────────────
+isNewPeriod = timeframe.change(periodTF)
+rightX      = bar_index + rightExtendBars
+
+// ─────────────────────────────
+// CURRENT PERIOD HIGH / LOW
 // ─────────────────────────────
 var float currHigh    = na
 var float currLow     = na
 var int   currHighBar = na
 var int   currLowBar  = na
 
-if isNewDay
+if isNewPeriod
     currHigh    := high
     currLow     := low
     currHighBar := bar_index
@@ -112,21 +143,21 @@ else
         currLowBar := bar_index
 
 // ─────────────────────────────
-// PREVIOUS DAILY VALUES (LOCKED)
+// PREVIOUS PERIOD VALUES (LOCKED)
 // ─────────────────────────────
 var float prevHigh    = na
 var float prevLow     = na
 var int   prevHighBar = na
 var int   prevLowBar  = na
 
-if isNewDay and not na(currHigh[1])
+if isNewPeriod and not na(currHigh[1])
     prevHigh    := currHigh[1]
     prevLow     := currLow[1]
     prevHighBar := currHighBar[1]
     prevLowBar  := currLowBar[1]
 
 // ─────────────────────────────
-// CURRENT DAY LINES (UPDATING)
+// CURRENT PERIOD LINES (UPDATING)
 // ─────────────────────────────
 var line currHighLine = na
 var line currLowLine  = na
@@ -152,12 +183,12 @@ if showCurrentLow and not na(currLow)
         line.set_width(currLowLine, currLowWidth)
 
 // ─────────────────────────────
-// PREVIOUS DAY LINES (FIXED PRICE)
+// PREVIOUS PERIOD LINES (FIXED PRICE)
 // ─────────────────────────────
 var line prevHighLine = na
 var line prevLowLine  = na
 
-if isNewDay and not na(prevHigh)
+if isNewPeriod and not na(prevHigh)
     line.delete(prevHighLine)
     line.delete(prevLowLine)
 
@@ -167,7 +198,7 @@ if isNewDay and not na(prevHigh)
     if showPrevLow
         prevLowLine := line.new(prevLowBar, prevLow, rightX, prevLow, color=prevLowColor, style=f_style(prevLowStyle), width=prevLowWidth)
 
-if not isNewDay
+if not isNewPeriod
     if showPrevHigh and not na(prevHighLine)
         line.set_xy2(prevHighLine, rightX, prevHigh)
         line.set_color(prevHighLine, prevHighColor)
@@ -191,10 +222,10 @@ var label prevLowLabel  = na
 if showCurrentHigh and not na(currHigh)
     if showCurrHighLabel
         if na(currHighLabel)
-            currHighLabel := label.new(rightX, currHigh, currHighLabelText, style=label.style_none, textcolor=currHighLabelColor, size=f_size(currHighLabelSize))
+            currHighLabel := label.new(rightX, currHigh, finalCurrHighText, style=label.style_none, textcolor=currHighLabelColor, size=f_size(currHighLabelSize))
         else
             label.set_xy(currHighLabel, rightX, currHigh)
-            label.set_text(currHighLabel, currHighLabelText)
+            label.set_text(currHighLabel, finalCurrHighText)
             label.set_textcolor(currHighLabel, currHighLabelColor)
             label.set_size(currHighLabel, f_size(currHighLabelSize))
     else
@@ -205,10 +236,10 @@ if showCurrentHigh and not na(currHigh)
 if showCurrentLow and not na(currLow)
     if showCurrLowLabel
         if na(currLowLabel)
-            currLowLabel := label.new(rightX, currLow, currLowLabelText, style=label.style_none, textcolor=currLowLabelColor, size=f_size(currLowLabelSize))
+            currLowLabel := label.new(rightX, currLow, finalCurrLowText, style=label.style_none, textcolor=currLowLabelColor, size=f_size(currLowLabelSize))
         else
             label.set_xy(currLowLabel, rightX, currLow)
-            label.set_text(currLowLabel, currLowLabelText)
+            label.set_text(currLowLabel, finalCurrLowText)
             label.set_textcolor(currLowLabel, currLowLabelColor)
             label.set_size(currLowLabel, f_size(currLowLabelSize))
     else
@@ -218,12 +249,12 @@ if showCurrentLow and not na(currLow)
 // Previous High Label
 if showPrevHigh and not na(prevHigh)
     if showPrevHighLabel
-        if isNewDay
+        if isNewPeriod
             label.delete(prevHighLabel)
-            prevHighLabel := label.new(rightX, prevHigh, prevHighLabelText, style=label.style_none, textcolor=prevHighLabelColor, size=f_size(prevHighLabelSize))
+            prevHighLabel := label.new(rightX, prevHigh, finalPrevHighText, style=label.style_none, textcolor=prevHighLabelColor, size=f_size(prevHighLabelSize))
         else
             label.set_xy(prevHighLabel, rightX, prevHigh)
-            label.set_text(prevHighLabel, prevHighLabelText)
+            label.set_text(prevHighLabel, finalPrevHighText)
             label.set_textcolor(prevHighLabel, prevHighLabelColor)
             label.set_size(prevHighLabel, f_size(prevHighLabelSize))
     else
@@ -233,12 +264,12 @@ if showPrevHigh and not na(prevHigh)
 // Previous Low Label
 if showPrevLow and not na(prevLow)
     if showPrevLowLabel
-        if isNewDay
+        if isNewPeriod
             label.delete(prevLowLabel)
-            prevLowLabel := label.new(rightX, prevLow, prevLowLabelText, style=label.style_none, textcolor=prevLowLabelColor, size=f_size(prevLowLabelSize))
+            prevLowLabel := label.new(rightX, prevLow, finalPrevLowText, style=label.style_none, textcolor=prevLowLabelColor, size=f_size(prevLowLabelSize))
         else
             label.set_xy(prevLowLabel, rightX, prevLow)
-            label.set_text(prevLowLabel, prevLowLabelText)
+            label.set_text(prevLowLabel, finalPrevLowText)
             label.set_textcolor(prevLowLabel, prevLowLabelColor)
             label.set_size(prevLowLabel, f_size(prevLowLabelSize))
     else
